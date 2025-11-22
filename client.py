@@ -1,9 +1,9 @@
 import socket
 import threading
+import sys
 
 HOST = "127.0.0.1" 
 PORT = 65432
-lock = threading.Lock()
 
 class Client:
   client_s1 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -13,12 +13,11 @@ class Client:
       text = input(f"{str_mes}を入力してください:")
       while len(text.encode('utf-8')) > max or len(text.encode('utf-8')) < min:
         print(f"{str_mes}は{min}文字以上{max}文字以内で入力してください")
-        print(len(text.encode('utf-8')))
         text = input(f"{str_mes}を入力してください:")
       return text
     except KeyboardInterrupt as e:
         print(e)
-
+   
   def create_mes(self, username):
     mes = self.input_text(1, 4096, "メッセージ")
     username_len = len(username.encode('utf-8'))
@@ -30,7 +29,7 @@ class Client:
           server_mes = self.client_s1.recvfrom(4096)
           if server_mes != None:
             server_mes = server_mes[0].decode('utf-8')
-            print(f'サーバーのメッセージ: {server_mes}')
+            sys.stdout.write("\n" + server_mes + "\n> ")
     except KeyboardInterrupt as e:
         print(e)
         self.client_s1.close()
@@ -40,8 +39,14 @@ class Client:
     thread2 = threading.Thread(target=self.receive_mes)
     thread2.start()
     while True:
-      self.create_mes(username)
+        self.create_mes(username)
       
 
 client = Client()
 client.client()
+
+#課題1
+# ユーザーがメッセージを送信しようとした際に、サーバーからメッセージが返ってくるとその後メッセージを送信できない
+
+#課題2
+# 非機能要件を満たせてるか確認できていない

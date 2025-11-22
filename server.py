@@ -14,25 +14,16 @@ def server():
         print(f"新しいアドレスが接続された:{received_client_address}") 
       now = datetime.now()      
       clients[received_client_address] = now
-          
-          
-      diff = datetime.now() - clients[received_client_address]
-      print(diff)
-      if (diff.seconds >= 60):
-        clients.pop(received_client_address)
-        print(clients)
-  
       username_len = int.from_bytes(client_mes[:1], 'big')
-      username = client_mes[1:1+username_len].decode('utf-8')
       mes = client_mes[1+username_len:].decode('utf-8')
-      print(client_mes)
-      print(received_client_address)
-      print(username_len)
-      print(username)
-      print(mes)
-      for client_address in clients:
+
+      for client_address in list(clients.keys()):
+        diff = datetime.now() - clients[client_address]
+        if (diff.seconds >= 60):
+            clients.pop(client_address)
+      for client_address in clients.keys():
           if client_address != received_client_address:
-            server_s.sendto(mes.encode('utf-8'), client_address)  
+            server_s.sendto(mes.encode('utf-8'), client_address)
     except KeyboardInterrupt as e:
       print(e)
       server_s.close()
