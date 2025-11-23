@@ -1,52 +1,143 @@
+#!/usr/bin/env python3
 import socket
 import threading
 import sys
+from typing import Tuple
 
-HOST = "127.0.0.1" 
-PORT = 65432
+MAX_PACKET_SIZE = 4096
 
-class Client:
-  client_s1 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-  client_s1.bind(("127.0.0.1", 0))
-  def input_text(self,min, max, str_mes):
-    try:
-      text = input(f"{str_mes}を入力してください:")
-      while len(text.encode('utf-8')) > max or len(text.encode('utf-8')) < min:
-        print(f"{str_mes}は{min}文字以上{max}文字以内で入力してください")
-        text = input(f"{str_mes}を入力してください:")
-      return text
-    except KeyboardInterrupt as e:
-        print(e)
-   
-  def create_mes(self, username):
-    mes = self.input_text(1, 4096, "メッセージ")
-    username_len = len(username.encode('utf-8'))
-    self.client_s1.sendto(username_len.to_bytes(1, "big") + username.encode('utf-8') + mes.encode('utf-8'), (HOST, PORT))
-  
-  def receive_mes(self):
-    try:
-      while True:
-          server_mes = self.client_s1.recvfrom(4096)
-          if server_mes != None:
-            server_mes = server_mes[0].decode('utf-8')
-            sys.stdout.write("\n" + server_mes + "\n> ")
-    except KeyboardInterrupt as e:
-        print(e)
-        self.client_s1.close()
 
-  def client(self):
-    username = self.input_text(1, 255, "ユーザー名")
-    thread2 = threading.Thread(target=self.receive_mes)
-    thread2.start()
-    while True:
-        self.create_mes(username)
-      
+class ChatClient:
+    def __init__(self, host: str = "127.0.0.1", port: int = 5000):
+        self.server_addr: Tuple[str, int] = (host, port)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        # UDP でも connect するとデフォルト送信先が設定される
+        self.sock.connect(self.server_addr)
+        self.username: str = ""
+        self.stop_event = threading.Event()
 
-client = Client()
-client.client()
+    @staticmethod
+    def build_packet(username: str, message: str) -> bytes:
+        """
+        Packet:
+        [0]       : 1 byte, username length
+        [1:1+N]   : username bytes (UTF-8)
+        [1+N: ]   : message bytes (UTF-8)
+        """
+        username_bytes = username.encode("utf-8")
+        if len(username_bytes) > 255:
+            raise ValueError("Username is too long (<= 255 bytes required).")
 
-#課題1
-# ユーザーがメッセージを送信しようとした際に、サーバーからメッセージが返ってくるとその後メッセージを送信できない
+        message_bytes = message.encode("utf-8")
+        packet = bytes([len(username_bytes)]) + username_bytes + message_bytes
 
-#課題2
-# 非機能要件を満たせてるか確認できていない
+        if len(packet) > MAX_PACKET_SIZE:
+            raise ValueError("Message too long (packet > 4096 bytes).")
+
+        return packet
+
+    def recv_loop(self) -> None:
+        while not self.stop_event.is_set():
+            try:
+                data = self.sock.recv(MAX_PACKET_SIZE)
+            except OSError:
+                break
+
+            if not data:
+                continue
+
+            username_len = data[0]
+            if len(data) < 1 + username_len:
+                print("\n[CLIENT] Received malformed packet.")
+                print("> ", end="", flush=True)
+                continue
+
+            username_bytes = data[1:1 + username_len]
+            message_bytes = data[1 + username_len:]
+
+            username = username_bytes.decode("utf-8", errors="replace")
+            message = message_bytes.decode("utf-8", errors="replace")
+
+            # 空メッセージ（参加通知など）は無視
+            if not message.strip():
+                print("> ", end="", flush=True)
+                continue
+
+            print(f"\n{username}> {message}")
+            print("> ", end="", flush=True)
+
+    def input_username(self) -> None:
+        while True:
+            name = input("Choose a username: ").strip()
+            if name:
+                self.username = name
+                return
+            print("Username cannot be empty.")
+
+    def send_join_packet(self) -> None:
+        """空メッセージのパケットを送り、サーバーに自分を登録させる。"""
+        try:
+            packet = self.build_packet(self.username, "")
+            self.sock.send(packet)
+        except ValueError as e:
+            print(f"[ERROR] Failed to send join packet: {e}")
+
+    def run(self) -> None:
+        self.input_username()
+        self.send_join_packet()
+
+        receiver = threading.Thread(target=self.recv_loop, daemon=True)
+        receiver.start()
+
+        print("Connected. Type messages and press Enter to send.")
+        print("Type /quit or /exit to leave.")
+
+        try:
+            while True:
+                try:
+                    message = input("> ")
+                except EOFError:
+                    break
+
+                if message.strip().lower() in ("/quit", "/exit"):
+                    break
+
+                if not message:
+                    continue
+
+                try:
+                    packet = self.build_packet(self.username, message)
+                except ValueError as e:
+                    print(f"[ERROR] {e}")
+                    continue
+
+                try:
+                    self.sock.send(packet)
+                except OSError as e:
+                    print(f"[ERROR] Failed to send: {e}")
+                    break
+        except KeyboardInterrupt:
+            pass
+        finally:
+            self.stop_event.set()
+            self.sock.close()
+            print("\nDisconnected.")
+
+
+def main():
+    # 引数でホスト・ポートを指定できる
+    if len(sys.argv) >= 3:
+        host = sys.argv[1]
+        port = int(sys.argv[2])
+    else:
+        host = input("Server host (default 127.0.0.1): ").strip() or "127.0.0.1"
+        port_str = input("Server port (default 5000): ").strip()
+        port = int(port_str) if port_str else 5000
+
+    client = ChatClient(host=host, port=port)
+    client.run()
+
+
+if __name__ == "__main__":
+    main()
+
