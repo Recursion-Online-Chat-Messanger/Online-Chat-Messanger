@@ -58,7 +58,7 @@ class ChatServer:
     def broadcast(self, message_bytes: bytes) -> None:
         for client_addr in list(self.clients.keys()):
             try:
-                self.sock.sendto(formatted, client_addr)
+                self.sock.sendto(message_bytes, client_addr)
             except OSError as e:
                 print(f"[WARN] Failed to send to {client_addr}: {e}")
 
