@@ -1,53 +1,69 @@
 # server/room_manager.py
 
+import threading
+from user import User
+from room import Room
 import os
 import hashlib
-import threading
-
 
 class RoomManager:
     def __init__(self):
-        # 全ルームの状態を保持
         self.rooms = {}
-        # 複数のスレッドが同じリソースにアクセスしないようにロックする
         self.lock = threading.Lock()
 
-
-    # トークン生成（最大255バイトを制限）
-
-    def generate_token(self):
+    '''
+    クライアントを識別するための「トークン（セッションID）」を生成する
+    
+    ・予測困難なランダム値をtokenとして使用する
+    ・16バイトの乱数を生成後、SHA-256でハッシュ化し、32バイト以内に切り詰めて使用する
+    '''
+    def _generate_token(self):
         raw = os.urandom(16)
-        token = hashlib.sha256(raw).hexdigest()[:32]  # 32字 = 32バイト以内
-        return token
-
-
-    # ルーム作成
+        return hashlib.sha256(raw).hexdigest()[:32]
 
     def create_room(self, room_name, username):
         with self.lock:
             if room_name in self.rooms:
-                raise ValueError("Room already exists")
+                return None   # 既に存在
 
-            token = self.generate_token()
-
-            self.rooms[room_name] = {
-                "host_token": token,
-                "tokens": {
-                    token: None  # IP未登録
-                }
-            }
+            token = self._generate_token()
+            user = User(username, token)
+            room = Room(room_name, user)
+            self.rooms[room_name] = room
             return token
-
-
-    # ルーム参加
 
     def join_room(self, room_name, username):
         with self.lock:
-            if room_name not in self.rooms:
-                raise ValueError("Room not found")
+            room = self.rooms.get(room_name)
+            if not room:
+                return None
 
-            token = self.generate_token()
-            self.rooms[room_name]["tokens"][token] = None
+            token = self._generate_token()
+            user = User(username, token)
+            room.add_user(user)
             return token
 
+    def register_address(self, room_name, token, ip, port):
+        with self.lock:
+            room = self.rooms.get(room_name)
+            if not room:
+                return False
 
+            user = room.get_user(token)
+            if not user:
+                return False
+
+            user.set_address(ip, port)
+            return True
+
+    def validate(self, room_name, token, ip, port):
+        with self.lock:
+            room = self.rooms.get(room_name)
+            if not room:
+                return False
+
+            user = room.get_user(token)
+            if not user:
+                return False
+
+            return user.address() == (ip, port)

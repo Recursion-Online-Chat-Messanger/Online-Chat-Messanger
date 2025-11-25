@@ -3,78 +3,72 @@
 import struct
 import json
 
-# ==============================
-# TCRP (TCP 用) 32バイトヘッダ
-# ==============================
+class TCRP:
+    """
+    TCRP (Threaded Chat Room Protocol) を扱うためのクラス。
 
-# ヘッダ形式： 1B room_size, 1B op, 1B state, 29B payload_size
-HEADER_FORMAT = "!BBB29s"   # ! はネットワークバイトオーダー(big endian)
+    - 32バイトのヘッダー構造
+      RoomNameSize (1B)
+      Operation    (1B)
+      State        (1B)
+      PayloadSize (29B)
 
+    - Body は RoomName + Payload
+    """
 
-# ヘッダ解析
-def parse_tcrp_header(header_bytes):
-    room_size, op, state, payload_raw = struct.unpack(HEADER_FORMAT, header_bytes)
-    payload_size = int(payload_raw.decode().strip() or 0)
-    return room_size, op, state, payload_size
+    # ----- OPERATION -----
+    OP_CREATE = 1      # 新規でルームを作成する
+    OP_JOIN   = 2      # 既存のルームに参加する
 
-
-
-# ボディ解析
-def parse_tcrp_body(room_size, body_bytes):
-    room_name = body_bytes[:room_size].decode("utf-8")
-    payload_raw = body_bytes[room_size:].decode("utf-8")
-    payload = json.loads(payload_raw) if payload_raw else None
-    return room_name, payload
-
+    # ----- STATE -----
+    STATE_REQUEST  = 0   # client から server (payload に "username"が含まれる)
+    STATE_CONFORM  = 1   # server から client (リクエストを受け付けたかどうかをOK/NGで応答する)
+    STATE_COMPLETE = 2   # server から client (server側で生成したtokenをclientに返す)
 
 
-# TCP レスポンス生成（token を返す用）
+class TCRPProtocol:
+    """
+    Handles TCRP encode/decode logic.
+    """
 
-def build_tcrp_response(room_name, token):
-    room_bytes = room_name.encode("utf-8")
+    HEADER_FORMAT = "!BBB29s"
 
-    payload = {"token": token}
-    payload_bytes = json.dumps(payload).encode("utf-8")
+    @classmethod
+    def parse_header(cls, header_bytes):
+        room_size, op, state, raw_payload_size = struct.unpack(
+            cls.HEADER_FORMAT,
+            header_bytes
+        )
+        payload_size = int(raw_payload_size.decode().strip() or 0)
+        return room_size, op, state, payload_size
 
-    # ヘッダ作成
-    payload_size_str = str(len(payload_bytes)).encode().ljust(29, b" ")
-    header = struct.pack(
-        HEADER_FORMAT,
-        len(room_bytes),
-        1,          # op = 1 (response)
-        2,          # state = 2 (complete)
-        payload_size_str
-    )
+    @classmethod
+    def parse_body(cls, room_size, body_bytes):
+        # room_name を切り出す
+        room_name = body_bytes[:room_size].decode("utf-8")
+        
+        # 残りはJSON文字列
+        payload_raw = body_bytes[room_size:].decode("utf-8")
 
-    return header + room_bytes + payload_bytes
+        payload = json.loads(payload_raw) if payload_raw else None
+        return room_name, payload
 
+    @classmethod
+    def build_response(cls, room_name, operation, state, payload_dict):
+        room_bytes = room_name.encode("utf-8")
 
-# ==============================
-# UDP プロトコル
-# ==============================
+        # JSONペイロードをバイナリ化
+        payload_bytes = json.dumps(payload_dict).encode("utf-8")
+        
+        # PayloadSize を ASCII 数値 + 空白埋め で 29 バイトに固定
+        payload_size_str = str(len(payload_bytes)).encode().ljust(29, b" ")
 
+        header = struct.pack(
+            cls.HEADER_FORMAT,
+            len(room_bytes),
+            operation,
+            state,
+            payload_size_str
+        )
 
-# UDP エンコード
-def build_udp_packet(room_name, token, message):
-    room_b = room_name.encode("utf-8")
-    token_b = token.encode("utf-8")
-    msg_b   = message.encode("utf-8")
-
-    header = bytes([len(room_b), len(token_b)])
-    return header + room_b + token_b + msg_b
-
-
-
-# UDP デコード
-
-def parse_udp_packet(data):
-    room_len  = data[0]
-    token_len = data[1]
-
-    room_start = 2
-    token_start = 2 + room_len
-    msg_start = token_start + token_len
-
-    room_name = data[room_start:token_start].decode()
-    token     = data[token_start:msg_start].decode()
-    message
+        return header + room_bytes + payload_bytes
