@@ -55,8 +55,7 @@ class ChatServer:
             print(f"[INFO] Removing idle client {addr}")
             del self.clients[addr]
 
-    def broadcast_message(self, username: str, message: str):
-        formatted = f"{username}> {message}".encode("utf-8")
+    def broadcast(self, message_bytes: bytes) -> None:
         for client_addr in list(self.clients.keys()):
             try:
                 self.sock.sendto(formatted, client_addr)

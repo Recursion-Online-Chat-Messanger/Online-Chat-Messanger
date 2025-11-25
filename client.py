@@ -77,7 +77,7 @@ class ChatClient:
     def send_join_packet(self) -> None:
         """空メッセージのパケットを送り、サーバーに自分を登録させる。"""
         try:
-            packet = self.build_packet(self.username, "")
+            packet = self.build_packet(self.room, self.token, "")
             self.sock.send(packet)
         except ValueError as e:
             print(f"[ERROR] Failed to send join packet: {e}")
