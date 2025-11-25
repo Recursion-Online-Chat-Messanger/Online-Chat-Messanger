@@ -67,3 +67,20 @@ class RoomManager:
                 return False
 
             return user.address() == (ip, port)
+
+    def is_valid_token(self, room_name, token, addr):
+        """UDP通信で token と IP の一致を確認する"""
+        if room_name not in self.rooms:
+            return False
+        
+        if token not in self.rooms[room_name]["tokens"]:
+            return False
+
+        # まだIPが登録されていない場合 → このクライアントを正式に登録
+        if self.rooms[room_name]["tokens"][token] is None:
+            self.rooms[room_name]["tokens"][token] = addr
+            return True
+
+        # 既に登録されている → addr の一致を確認
+        return self.rooms[room_name]["tokens"][token] == addr
+
