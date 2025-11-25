@@ -29,9 +29,9 @@ class ChatClient:
         Header:  [0] RoomNameSize (1 byte) | [1] TokenSize (1 byte)
         Body:    room_name bytes | token bytes | message bytes
         """
-        room_bytes = username.encode("utf-8")
+        room_bytes = room.encode("utf-8")
         if len(room_bytes) > 255:
-            raise ValueError("Rumename is too long (<= 255 bytes required).")
+            raise ValueError("Room name is too long (<= 255 bytes required).")
 
         token_bytes = token.encode("utf-8")
         if len(token_bytes) > 255:
