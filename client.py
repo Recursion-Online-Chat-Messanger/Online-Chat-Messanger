@@ -63,7 +63,7 @@ class ChatClient:
                 print("> ", end="", flush=True)
                 continue
 
-            print(f"\n{username}> {message}")
+            print(f"\nusername: {username} | message: {message}")
             print("> ", end="", flush=True)
 
     def input_username(self) -> None:
