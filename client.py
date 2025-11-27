@@ -128,18 +128,32 @@ class ChatClient:
 
 
 def main():
-    # 引数でホスト・ポートを指定できる
+    # --- 1. まず host / port の元の値を決める ---
     if len(sys.argv) >= 3:
         host = sys.argv[1]
-        port = int(sys.argv[2])
+        port_str = sys.argv[2]
     else:
         host = input("Server host (default 127.0.0.1): ").strip() or "127.0.0.1"
-        port_str = input("Server port (default 5000): ").strip()
-        port = int(port_str) if port_str else 5000
+        port_str = input("Server port (default 5000): ").strip() or "5000"
+
+    # --- 2. ホストのバリデーション（この課題ではローカルのみ許可） ---
+    while True:
+        if host in ("127.0.0.1", "localhost"):
+            break
+        print("For this project, server host must be 127.0.0.1 or localhost.")
+        host = input("Server host (default 127.0.0.1): ").strip() or "127.0.0.1"
+
+    # --- 3. ポート番号のバリデーション（この課題では 5000 のみ） ---
+    while True:
+        if port_str.isdigit():
+            port = int(port_str)
+            if port == 5000:
+                break
+        print("For this project, server port must be 5000.")
+        port_str = input("Server port (default 5000): ").strip() or "5000"
 
     client = ChatClient(host=host, port=port)
     client.run()
-
 
 if __name__ == "__main__":
     main()
