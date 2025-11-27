@@ -3,7 +3,7 @@
 import socket
 import json
 
-from protocol import TCRPProtocol, Operation, State
+from server.protocol import TCRPProtocol, Operation, State
 
 
 class TCPClient:
@@ -38,7 +38,6 @@ class TCPClient:
         成功時: token（文字列）を返す
         失敗時: RuntimeError を投げる
         """
-
         payload = {"username": username}
         request_bytes = TCRPProtocol.build_request(room_name, op, payload)
 
@@ -46,7 +45,10 @@ class TCPClient:
         conn.connect((self.host, self.port))
 
         # リクエスト送信
+        print(">>> SEND:", request_bytes)
+        print(">>> SEND LEN:", len(request_bytes))
         conn.sendall(request_bytes)
+        
 
         # ---------- conform 受信（state=1） ----------
         header_bytes = self.recv_n(conn, 32)
@@ -89,10 +91,12 @@ if __name__ == "__main__":
     user = input("Username: ").strip()
     mode = input("create/join: ").strip()
 
-    if mode == "create":
+    if mode == "1":
         op = Operation.CREATE
-    else:
+    elif mode == "2":
         op = Operation.JOIN
+    else:
+        raise RuntimeError("Invalid input")
 
     try:
         token = client.request(room, user, op)
