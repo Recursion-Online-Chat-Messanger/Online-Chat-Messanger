@@ -4,7 +4,7 @@ import time
 from typing import Dict, Tuple
 
 MAX_PACKET_SIZE = 4096
-IDLE_TIMEOUT = 60  # seconds
+IDLE_TIMEOUT = 60  # 秒
 
 
 class ChatServer:
@@ -23,23 +23,30 @@ class ChatServer:
     def decode_packet(data: bytes):
         """
         Packet format:
-        [0]       : 1 byte, username length (0–255)
-        [1:1+N]   : username bytes (UTF-8)
-        [1+N: ]   : message bytes (UTF-8)
+        Header: RoomNameSize (1 byte) | TokenSize (1 byte)
+        Body:   room_name bytes | token bytes | message bytes
         """
-        if not data:
-            return None, None
 
-        username_len = data[0]
-        if len(data) < 1 + username_len:
-            return None, None
+        if len(data) < 2:
+            return None, None, None
 
-        username_bytes = data[1:1 + username_len]
-        message_bytes = data[1 + username_len:]
+        room_len = data[0]
+        token_len = data[1]
 
-        username = username_bytes.decode("utf-8", errors="replace")
+        header_len = 2 + room_len + token_len
+        if len(data) < header_len:
+            return None, None, None
+
+        room_bytes = data[2:2 + room_len]
+        token_bytes = data[2 + room_len:2 + room_len + token_len]
+        message_bytes = data[header_len:]
+
+        room = room_bytes.decode("utf-8", errors="replace")
+        token = token_bytes.decode("utf-8", errors="replace")
+        # message はログ用に decode するが、クライアントには bytes をそのまま送る
         message = message_bytes.decode("utf-8", errors="replace")
-        return username, message
+
+        return room, token, message_bytes, message
 
     def cleanup_clients(self, now: float) -> None:
         stale = [addr for addr, last in self.clients.items()
@@ -48,10 +55,10 @@ class ChatServer:
             print(f"[INFO] Removing idle client {addr}")
             del self.clients[addr]
 
-    def broadcast(self, data: bytes) -> None:
+    def broadcast(self, message_bytes: bytes) -> None:
         for client_addr in list(self.clients.keys()):
             try:
-                self.sock.sendto(data, client_addr)
+                self.sock.sendto(message_bytes, client_addr)
             except OSError as e:
                 print(f"[WARN] Failed to send to {client_addr}: {e}")
 
@@ -66,22 +73,23 @@ class ChatServer:
                     break
 
                 now = time.time()
-                # register/update client
+                # クライアントの登録、更新
                 self.clients[addr] = now
 
-                username, message = self.decode_packet(data)
-                if username is None:
+                room, token, message_bytes, message = self.decode_packet(data)
+                if room is None:
                     print(f"[WARN] Received malformed packet from {addr}")
                     continue
 
                 ts = time.strftime("%H:%M:%S", time.localtime(now))
-                print(f"[{ts}] {addr} {username}: {message}")
+                print(f"[{ts}] room={room} token={token} {addr}: {message}")
 
-                # cleanup idle clients
+                # クライアントのクリーンアップ
                 self.cleanup_clients(now)
 
-                # relay original packet (username + message) to all
-                self.broadcast(data)
+                # ★ メッセージ部分だけを送る（ヘッダーなし、4094 バイト以内）
+                self.broadcast(message_bytes)
+
         finally:
             self.sock.close()
 

@@ -9,30 +9,40 @@ MAX_PACKET_SIZE = 4096
 
 class ChatClient:
     def __init__(self, host: str = "127.0.0.1", port: int = 5000):
-        self.server_addr: Tuple[str, int] = (host, port)
+        self.server_addr = (host, port)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # UDP でも connect するとデフォルト送信先が設定される
         self.sock.connect(self.server_addr)
         self.username: str = ""
+        self.room: str = ""
+        self.token: str = ""
         self.stop_event = threading.Event()
 
+    def input_room_and_token(self) -> None:
+        self.room = input("Room name (default: lobby): ").strip() or "lobby"
+        self.token = input("Token (optional, can be empty): ").strip()
+
     @staticmethod
-    def build_packet(username: str, message: str) -> bytes:
+    def build_packet(room: str, token: str, message: str) -> bytes:
         """
         Packet:
-        [0]       : 1 byte, username length
-        [1:1+N]   : username bytes (UTF-8)
-        [1+N: ]   : message bytes (UTF-8)
+        Header:  [0] RoomNameSize (1 byte) | [1] TokenSize (1 byte)
+        Body:    room_name bytes | token bytes | message bytes
         """
-        username_bytes = username.encode("utf-8")
-        if len(username_bytes) > 255:
-            raise ValueError("Username is too long (<= 255 bytes required).")
+        room_bytes = room.encode("utf-8")
+        if len(room_bytes) > 255:
+            raise ValueError("Room name is too long (<= 255 bytes required).")
+
+        token_bytes = token.encode("utf-8")
+        if len(token_bytes) > 255:
+            raise ValueError("Token is too long (<= 255 bytes required).")
 
         message_bytes = message.encode("utf-8")
-        packet = bytes([len(username_bytes)]) + username_bytes + message_bytes
+        header = bytes([len(room_bytes), len(token_bytes)])
+        packet = header + room_bytes + token_bytes + message_bytes
 
         if len(packet) > MAX_PACKET_SIZE:
-            raise ValueError("Message too long (packet > 4096 bytes).")
+            raise ValueError("Packet too long (packet > 4096 bytes).")
 
         return packet
 
@@ -46,17 +56,7 @@ class ChatClient:
             if not data:
                 continue
 
-            username_len = data[0]
-            if len(data) < 1 + username_len:
-                print("\n[CLIENT] Received malformed packet.")
-                print("> ", end="", flush=True)
-                continue
-
-            username_bytes = data[1:1 + username_len]
-            message_bytes = data[1 + username_len:]
-
-            username = username_bytes.decode("utf-8", errors="replace")
-            message = message_bytes.decode("utf-8", errors="replace")
+            message = data.decode("utf-8", errors="replace")
 
             # 空メッセージ（参加通知など）は無視
             if not message.strip():
@@ -77,14 +77,14 @@ class ChatClient:
     def send_join_packet(self) -> None:
         """空メッセージのパケットを送り、サーバーに自分を登録させる。"""
         try:
-            packet = self.build_packet(self.username, "")
+            packet = self.build_packet(self.room, self.token, "")
             self.sock.send(packet)
         except ValueError as e:
             print(f"[ERROR] Failed to send join packet: {e}")
 
     def run(self) -> None:
         self.input_username()
-        self.send_join_packet()
+        self.input_room_and_token()   # 変更
 
         receiver = threading.Thread(target=self.recv_loop, daemon=True)
         receiver.start()
@@ -105,8 +105,11 @@ class ChatClient:
                 if not message:
                     continue
 
+                # 実際に送るメッセージは「username> message」の形にする
+                text = f"{self.username}> {message}"
+
                 try:
-                    packet = self.build_packet(self.username, message)
+                    packet = self.build_packet(self.room, self.token, text)
                 except ValueError as e:
                     print(f"[ERROR] {e}")
                     continue
