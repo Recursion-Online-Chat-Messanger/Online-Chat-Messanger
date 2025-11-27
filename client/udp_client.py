@@ -1,72 +1,55 @@
-# client/udp_client.py
-
+# Client/udp_client.py
 import socket
 import threading
-import time
 
 
 class UDPClient:
-    def __init__(self, host="127.0.0.1", port=9001):
+    def __init__(self, host="127.0.0.1", port=9001, room="", token="", username=""):
         self.host = host
         self.port = port
-        self.sock = None
-        self.running = False
-
-    def start(self, room_name, token):
-        """UDPクライアントを起動し、受信スレッドをスタート"""
-        self.room_name = room_name
+        self.room = room
         self.token = token
+        self.username = username
 
-        # UDP ソケットを作成
+        # 受信ソケット
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.bind(("0.0.0.0", 0))  # 動的ポート割り当て
+        self.sock.bind(("0.0.0.0", 0))
+        print("[UDP CLIENT] Listening on", self.sock.getsockname())
 
-        print(f"[UDP CLIENT] Listening on {self.sock.getsockname()}")
+    # ---- 送信（通常メッセージ） ----
+    def send_message(self, text):
+        room_b = self.room.encode()
+        token_b = self.token.encode()
+        user_b = self.username.encode()
+        msg_b = text.encode()
 
-        # 受信ループを別スレッドで開始
-        self.running = True
-        threading.Thread(target=self.receive_loop, daemon=True).start()
-
-        # 入力ループ開始
-        self.input_loop()
-
-    def build_packet(self, room_name, token, message):
-        room_b = room_name.encode("utf-8")
-        token_b = token.encode("utf-8")
-        msg_b = message.encode("utf-8")
-
-        return (
-            bytes([len(room_b), len(token_b)]) +
-            room_b + token_b + msg_b
+        packet = (
+            bytes([0, len(room_b), len(token_b), len(user_b)]) +
+            room_b + token_b + user_b + msg_b
         )
 
-    def send_message(self, message):
-        packet = self.build_packet(self.room_name, self.token, message)
         self.sock.sendto(packet, (self.host, self.port))
 
+    # ---- 退出（op = 1） ----
+    def send_leave(self):
+        room_b = self.room.encode()
+        token_b = self.token.encode()
+        user_b = self.username.encode()
+
+        packet = (
+            bytes([1, len(room_b), len(token_b), len(user_b)]) +
+            room_b + token_b + user_b
+        )
+
+        self.sock.sendto(packet, (self.host, self.port))
+
+    # ---- 非同期受信 ----
     def receive_loop(self):
-        while self.running:
-            try:
-                data, _ = self.sock.recvfrom(4096)
-                print("[MSG]", data.decode("utf-8"))
-            except:
-                continue
-
-    def input_loop(self):
         while True:
-            msg = input("> ").strip()
-
-            if msg == "exit":
-                print("[UDP CLIENT] Exit requested.")
-                self.running = False
-                break
-
-            self.send_message(msg)
+            msg, _ = self.sock.recvfrom(4096)
+            print(msg.decode())
 
 
+# 手動実行テスト (main.py 経由が通常)
 if __name__ == "__main__":
-    room = input("Room name: ").strip()
-    token = input("Token: ").strip()
-
-    client = UDPClient()
-    client.start(room, token)
+    print("Use main.py client")

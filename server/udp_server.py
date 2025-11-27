@@ -1,26 +1,18 @@
-# server/udp_server.py
-# 動作確認用
-
+# Server/udp_server.py
 import socket
 from .room_manager import RoomManager
 
 print(">>> udp_server.py LOADED")
 
+
 class UDPServer:
-    """
-    Stage2 完全版 UDP サーバ。
-    - op = 0: 通常メッセージ
-    - op = 1: exit/leave
-    """
 
     def __init__(self, host="0.0.0.0", port=9001, manager=None):
         self.host = host
         self.port = port
         self.manager: RoomManager = manager
+        self.room_clients = {}   # room_name → { token → (ip, port) }
         self.sock = None
-
-        # room_name -> { token -> (ip, port) }
-        self.room_clients = {}
 
     def start(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -32,61 +24,69 @@ class UDPServer:
             self.handle_packet(data, addr)
 
     def handle_packet(self, data, addr):
-        if len(data) < 3:
+        if len(data) < 4:
             return
 
         op = data[0]
         room_size = data[1]
         token_size = data[2]
+        user_size = data[3]
 
-        if len(data) < 3 + room_size + token_size:
-            return
+        offset = 4
+        room = data[offset : offset + room_size].decode()
+        offset += room_size
 
-        room_name = data[3 : 3 + room_size].decode("utf-8")
-        token = data[3 + room_size : 3 + room_size + token_size].decode("utf-8")
-        message = data[3 + room_size + token_size :].decode("utf-8")
+        token = data[offset : offset + token_size].decode()
+        offset += token_size
+
+        username = data[offset : offset + user_size].decode()
+        offset += user_size
+
+        message = data[offset:].decode()
 
         # token 認証
-        if not self.manager.is_valid_token(room_name, token, addr):
-            print(f"[UDP] Invalid token from {addr}")
+        if not self.manager.is_valid_token(room, token, addr):
+            print("[UDP] Invalid token from", addr)
             return
 
-        self.room_clients.setdefault(room_name, {})
-        self.room_clients[room_name][token] = addr
+        self.room_clients.setdefault(room, {})
+        self.room_clients[room][token] = addr
 
-        # op = 1 → exit/leave
+        # ---- exit（leave） ----
         if op == 1:
-            self.process_leave(room_name, token)
+            self.process_leave(room, token)
             return
 
-        # 通常メッセージ broadcast
-        self.broadcast(room_name, addr, message)
+        # ---- 通常メッセージ ----
+        self.broadcast(room, addr, username, message)
 
-    def broadcast(self, room_name, sender_addr, message):
-        """room 内の全クライアントへメッセージ送信"""
-        if room_name not in self.room_clients:
+    # ---- 各クライアントへ配信 ----
+    def broadcast(self, room, sender_addr, username, message):
+        if room not in self.room_clients:
             return
 
-        for tkn, caddr in self.room_clients[room_name].items():
+        full_msg = f"{username}: {message}".encode()
+
+        for tkn, caddr in self.room_clients[room].items():
             if caddr != sender_addr:
-                self.sock.sendto(message.encode("utf-8"), caddr)
+                self.sock.sendto(full_msg, caddr)
 
-    def process_leave(self, room_name, token):
-        """ユーザー退出処理"""
-        result = self.manager.leave_room(room_name, token)
+    # ---- 退出処理 ----
+    def process_leave(self, room, token):
+        result = self.manager.leave_room(room, token)
 
-        # ホスト退出 → 部屋削除 → 全員通知
+        # ホスト退出 → 部屋削除
         if result == "host_closed":
-            print(f"[UDP] Host left. Closing room: {room_name}")
+            print("[UDP] Host left. Closing room:", room)
 
-            if room_name in self.room_clients:
-                for tkn, addr in self.room_clients[room_name].items():
+            if room in self.room_clients:
+                for tkn, addr in self.room_clients[room].items():
                     self.sock.sendto(b"[SERVER] Room closed", addr)
 
-            self.room_clients.pop(room_name, None)
+            self.room_clients.pop(room, None)
             return
 
         # 参加者退出
-        if result is True:
-            print(f"[UDP] User left room {room_name}")
-            self.room_clients[room_name].pop(token, None)
+        if result:
+            print(f"[UDP] User left room {room}")
+            self.room_clients.get(room, {}).pop(token, None)

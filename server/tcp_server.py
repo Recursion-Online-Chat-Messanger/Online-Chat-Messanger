@@ -2,7 +2,7 @@
 
 import socket
 import threading
-from .protocol import TCRPProtocol, Operation, State
+from Common.protocol import TCRPProtocol, Operation, State
 from .room_manager import RoomManager
 
 print(">>> tcp_server.py LOADED")
@@ -85,14 +85,17 @@ class TCPServer:
             # create / join
             if op == Operation.CREATE:
                 token = self.manager.create_room(room_name, username)
+                error_msg = "Room already exists"
             elif op == Operation.JOIN:
                 token = self.manager.join_room(room_name, username)
+                error_msg = "Room not found"
             else:
                 self.send_ng(conn, room_name, op, "Invalid op")
                 return
 
             if token is None:
-                self.send_ng(conn, room_name, op, "Room error")
+                # create/join 失敗時は COMPLETE 相当でエラーを返す
+                self.send_ng(conn, room_name, op, error_msg, state=State.COMPLETE)
                 return
 
             # 完了応答
@@ -111,11 +114,11 @@ class TCPServer:
             conn.close()
 
     # NG 応答
-    def send_ng(self, conn, room_name, op, msg):
+    def send_ng(self, conn, room_name, op, msg, state=State.CONFORM):
         packet = TCRPProtocol.build_response(
             room_name,
             op,
-            State.CONFORM,   # エラー時も CONFORM 相当で返す
+            state,
             {"status": 1, "error": msg}
         )
         conn.sendall(packet)

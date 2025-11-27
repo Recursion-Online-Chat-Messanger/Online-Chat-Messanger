@@ -1,9 +1,9 @@
-# client/tcp_client.py
+# Client/tcp_client.py
 
 import socket
 import json
 
-from server.protocol import TCRPProtocol, Operation, State
+from Common.protocol import TCRPProtocol, Operation, State
 
 
 class TCPClient:
@@ -31,6 +31,7 @@ class TCPClient:
         return buf
 
     def request(self, room_name, username, op):
+
         """
         サーバに create/join 操作を依頼し、token を取得する。
         op は Operation.CREATE または Operation.JOIN。
@@ -53,7 +54,6 @@ class TCPClient:
         # ---------- conform 受信（state=1） ----------
         header_bytes = self.recv_n(conn, 32)
         room_size, op_recv, state, payload_size = TCRPProtocol.parse_header(header_bytes)
-
         if state != State.CONFORM:
             raise RuntimeError("Expected conform(state=1) but got different state")
 
@@ -67,19 +67,25 @@ class TCPClient:
         header_bytes = self.recv_n(conn, 32)
         room_size, op_recv, state, payload_size = TCRPProtocol.parse_header(header_bytes)
 
-        if state != State.COMPLETE:
-            raise RuntimeError("Expected complete(state=2)")
-
         body_bytes = self.recv_n(conn, room_size + payload_size)
         _, payload = TCRPProtocol.parse_body(room_size, body_bytes)
 
+        if state != State.COMPLETE:
+            error_msg = payload.get("error") if payload else None
+            raise RuntimeError(
+                f"Expected complete(state=2) but got state={state}"
+                + (f": {error_msg}" if error_msg else "")
+            )
+
         if payload.get("status", 0) != 0:
             raise RuntimeError(f"Server returned error: {payload.get('error')}")
-
+        
+        # デバッグ用
+        print("DEBUG op:", op)
+        
         token = payload.get("token")
         if not token:
             raise RuntimeError("Token missing in complete response")
-
         conn.close()
         return token
 
@@ -97,6 +103,7 @@ if __name__ == "__main__":
         op = Operation.JOIN
     else:
         raise RuntimeError("Invalid input")
+
 
     try:
         token = client.request(room, user, op)

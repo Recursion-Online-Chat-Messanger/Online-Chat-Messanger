@@ -36,6 +36,9 @@ class TCRPProtocol:
         room_b = room_name.encode("utf-8")
         payload_b = json.dumps(payload_dict).encode("utf-8")
         payload_size_b = str(len(payload_b)).encode().ljust(29, b" ")
+        
+        # デバッグ用
+        print(f"[DEBUG build_request] op={op}")
 
         header = struct.pack(
             cls.HEADER_FORMAT,

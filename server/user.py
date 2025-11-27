@@ -1,4 +1,4 @@
-# server/user.py
+# Server/user.py
 # ユーザー情報の管理
 
 class User:
