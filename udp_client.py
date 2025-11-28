@@ -2,7 +2,6 @@
 import socket
 import threading
 import sys
-from typing import Tuple
 
 MAX_PACKET_SIZE = 4096
 
@@ -63,7 +62,7 @@ class ChatClient:
                 print("> ", end="", flush=True)
                 continue
 
-            print(f"\nusername: {username} | message: {message}")
+            print(f"\n{message}")
             print("> ", end="", flush=True)
 
     def input_username(self) -> None:
