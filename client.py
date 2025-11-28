@@ -2,7 +2,6 @@
 import socket
 import threading
 import sys
-from typing import Tuple
 
 MAX_PACKET_SIZE = 4096
 
