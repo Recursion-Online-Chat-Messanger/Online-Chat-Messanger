@@ -155,7 +155,6 @@ def main():
     client = ChatClient(host=host, port=port)
     client.run()
 
-
 if __name__ == "__main__":
     main()
 
