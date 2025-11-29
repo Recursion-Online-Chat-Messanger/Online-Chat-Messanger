@@ -3,14 +3,14 @@ import argparse
 import threading
 import sys
 
-# Server
-from Server.tcp_server import TCPServer
-from Server.udp_server import UDPServer
-from Server.room_manager import RoomManager
+# server
+from server.tcp_server import TCPServer
+from server.udp_server import UDPServer
+from server.room_manager import RoomManager
 
-# Client
-from Client.tcp_client import TCPClient
-from Client.udp_client import UDPClient
+# client
+from client.tcp_client import TCPClient
+from client.udp_client import UDPClient
 
 
 # サーバ起動

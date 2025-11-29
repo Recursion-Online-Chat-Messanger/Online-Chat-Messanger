@@ -3,7 +3,7 @@
 import socket
 import json
 
-from common.protocol import TCRPProtocol, Operation, State
+from Common.protocol import TCRPProtocol, Operation, State
 
 
 class TCPClient:
