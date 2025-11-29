@@ -85,9 +85,11 @@ class TCPServer:
             # create / join
             if op == Operation.CREATE:
                 token = self.manager.create_room(room_name, username)
+                print(f"ルーム名:{room_name}が作成されました。{room_name}のホストは{username}さんです。")
                 error_msg = "Room already exists"
             elif op == Operation.JOIN:
                 token = self.manager.join_room(room_name, username)
+                print(f"ルーム名:{room_name}に{username}さんが参加しました。")
                 error_msg = "Room not found"
             else:
                 self.send_ng(conn, room_name, op, "Invalid op")

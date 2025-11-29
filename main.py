@@ -87,7 +87,7 @@ def run_client(args):
 # CLI エントリーポイント
 def main():
     parser = argparse.ArgumentParser(
-        description="Online Chat Messenger (TCP+UDP) / Nunchi Team",
+        description="Online Chat Messenger",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
