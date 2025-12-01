@@ -2,7 +2,7 @@
 
 import socket
 import threading
-from common.protocol import TCRPProtocol, Operation, State
+from Common.protocol import TCRPProtocol, Operation, State
 from .room_manager import RoomManager
 
 print(">>> tcp_server.py LOADED")
@@ -54,8 +54,10 @@ class TCPServer:
             ).start()
 
     # クライアント処理
-    def handle_client(self, conn):
+    def handle_client(self, conn, addr):
         try:
+            print(f"[TCP SERVER] Handling client {addr}")
+
             # ヘッダー受信（32 byte）
             header_bytes = self.recv_n(conn, 32)
             print(">>> SERVER RECEIVED HEADER:", header_bytes, "LEN:", len(header_bytes))
