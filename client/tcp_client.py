@@ -53,7 +53,7 @@ class TCPClient:
         # ---------- conform 受信（state=1） ----------
         header_bytes = self.recv_n(conn, 32)
         room_size, op_recv, state, payload_size = TCRPProtocol.parse_header(header_bytes)
-        if state != State.CONFORM:
+        if state != TCRPProtocol.STATE_CONFORM:
             raise RuntimeError("Expected conform(state=1) but got different state")
 
         body_bytes = self.recv_n(conn, room_size + payload_size)
@@ -69,7 +69,7 @@ class TCPClient:
         body_bytes = self.recv_n(conn, room_size + payload_size)
         _, payload = TCRPProtocol.parse_body(room_size, body_bytes)
 
-        if state != State.COMPLETE:
+        if state != TCRPProtocol.STATE_COMPLETE:
             error_msg = payload.get("error") if payload else None
             raise RuntimeError(
                 f"Expected complete(state=2) but got state={state}"
@@ -80,7 +80,7 @@ class TCPClient:
             raise RuntimeError(f"Server returned error: {payload.get('error')}")
         
         # デバッグ用
-        print("DEBUG op:", op)
+        # print("DEBUG op:", op)
         
         token = payload.get("token")
         if not token:
@@ -97,9 +97,9 @@ if __name__ == "__main__":
     mode = input("create/join: ").strip()
 
     if mode == "1":
-        op = Operation.CREATE
+        op = TCRPProtocol.OP_CREATE
     elif mode == "2":
-        op = Operation.JOIN
+        op = TCRPProtocol.OP_JOIN
     else:
         raise RuntimeError("Invalid input")
 
