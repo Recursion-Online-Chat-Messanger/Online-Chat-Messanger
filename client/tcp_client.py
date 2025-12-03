@@ -2,7 +2,7 @@
 
 import socket
 
-from common.protocol import TCRPProtocol, Operation, State
+from common.protocol import TCRPProtocol
 
 
 class TCPClient:
