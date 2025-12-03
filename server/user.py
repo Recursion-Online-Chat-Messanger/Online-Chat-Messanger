@@ -11,6 +11,7 @@ class User:
     def set_address(self, ip, port):
         self.ip = ip
         self.port = port
+        
     def address(self):
         if self.ip is None:
             return None
