@@ -2,7 +2,7 @@
 
 import socket
 import threading
-from common.protocol import TCRPProtocol, Operation, State
+from common.protocol import TCRPProtocol
 from .room_manager import RoomManager
 
 print(">>> tcp_server.py LOADED")
@@ -64,7 +64,7 @@ class TCPServer:
             room_size, op, state, payload_size = TCRPProtocol.parse_header(header_bytes)
 
             # client → server の REQUEST
-            if state != State.REQUEST:
+            if state != TCRPProtocol.STATE_REQUEST:
                 self.send_ng(conn, "", op, "Invalid state")
                 return
 
@@ -80,16 +80,16 @@ class TCPServer:
 
             # リクエストの受付結果を返す
             conform_packet = TCRPProtocol.build_response(
-                room_name, op, State.CONFORM, {"status": 0}
+                room_name, op, TCRPProtocol.STATE_CONFORM, {"status": 0}
             )
             conn.sendall(conform_packet)
 
             # create / join
-            if op == Operation.CREATE:
+            if op == TCRPProtocol.OP_CREATE:
                 token = self.manager.create_room(room_name, username)
                 print(f"ルーム名:{room_name}が作成されました。{room_name}のホストは{username}さんです。")
                 error_msg = "Room already exists"
-            elif op == Operation.JOIN:
+            elif op == TCRPProtocol.OP_JOIN:
                 token = self.manager.join_room(room_name, username)
                 print(f"ルーム名:{room_name}に{username}さんが参加しました。")
                 error_msg = "Room not found"
@@ -99,14 +99,14 @@ class TCPServer:
 
             if token is None:
                 # create/join 失敗時は COMPLETE 相当でエラーを返す
-                self.send_ng(conn, room_name, op, error_msg, state=State.COMPLETE)
+                self.send_ng(conn, room_name, op, error_msg, state=TCRPProtocol.STATE_COMPLETE)
                 return
 
             # 完了応答
             complete_packet = TCRPProtocol.build_response(
                 room_name,
                 op,
-                State.COMPLETE, {"token": token}
+                TCRPProtocol.STATE_COMPLETE, {"token": token}
             )
             print(f"[TCP SERVER] COMPLETE: room={room_name}, user={username}, token={token}")
             conn.sendall(complete_packet)
@@ -118,7 +118,7 @@ class TCPServer:
             conn.close()
 
     # NG 応答
-    def send_ng(self, conn, room_name, op, msg, state=State.CONFORM):
+    def send_ng(self, conn, room_name, op, msg, state=TCRPProtocol.STATE_CONFORM):
         packet = TCRPProtocol.build_response(
             room_name,
             op,

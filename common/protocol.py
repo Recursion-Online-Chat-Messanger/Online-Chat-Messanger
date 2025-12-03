@@ -1,20 +1,13 @@
 import struct
 import json
 
-
-class Operation:
-    CREATE = 1
-    JOIN = 2
-
-
-class State:
-    REQUEST = 0
-    CONFORM = 1
-    COMPLETE = 2
-
-
 class TCRPProtocol:
     HEADER_FORMAT = "!BBB29s"
+    OP_CREATE = 1
+    OP_JOIN = 2
+    STATE_REQUEST = 0
+    STATE_CONFORM = 1
+    STATE_COMPLETE = 2
 
     @classmethod
     def parse_header(cls, header_bytes):
@@ -38,13 +31,13 @@ class TCRPProtocol:
         payload_size_b = str(len(payload_b)).encode().ljust(29, b" ")
         
         # デバッグ用
-        print(f"[DEBUG build_request] op={op}")
+        # print(f"[DEBUG build_request] op={op}")
 
         header = struct.pack(
             cls.HEADER_FORMAT,
             len(room_b),
             op,
-            State.REQUEST,
+            TCRPProtocol.STATE_REQUEST,
             payload_size_b
         )
         return header + room_b + payload_b
