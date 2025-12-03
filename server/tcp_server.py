@@ -32,8 +32,7 @@ class TCPServer:
         return buf
 
     
-    # サーバ起動
-    
+    # サーバ起動   
     def start(self):
         print(">>> TCPServer.start() CALLED")
 
@@ -87,11 +86,11 @@ class TCPServer:
             # create / join
             if op == TCRPProtocol.OP_CREATE:
                 token = self.manager.create_room(room_name, username)
-                print(f"ルーム名:{room_name}が作成されました。{room_name}のホストは{username}さんです。")
+                print(f"'{room_name}' was created by '{username}'. {room_name}'s host is {username}.")
                 error_msg = "Room already exists"
             elif op == TCRPProtocol.OP_JOIN:
                 token = self.manager.join_room(room_name, username)
-                print(f"ルーム名:{room_name}に{username}さんが参加しました。")
+                print(f"{username} joined '{room_name}'.")
                 error_msg = "Room not found"
             else:
                 self.send_ng(conn, room_name, op, "Invalid op")
