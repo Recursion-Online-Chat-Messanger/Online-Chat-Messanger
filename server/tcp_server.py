@@ -85,12 +85,16 @@ class TCPServer:
 
             # create / join
             if op == TCRPProtocol.OP_CREATE:
+                # チャットルームの作成に成功
                 token = self.manager.create_room(room_name, username)
                 print(f"'{room_name}' was created by '{username}'. {room_name}'s host is {username}.")
+                # チャットルームの作成に失敗（作成失敗時のエラーメッセージを定義）
                 error_msg = "Room already exists"
             elif op == TCRPProtocol.OP_JOIN:
+                # チャットルームの作成に成功
                 token = self.manager.join_room(room_name, username)
                 print(f"{username} joined '{room_name}'.")
+                # チャットルームの作成に失敗（作成失敗時のエラーメッセージを定義）
                 error_msg = "Room not found"
             else:
                 self.send_ng(conn, room_name, op, "Invalid op")
