@@ -1,0 +1,72 @@
+# ------------------------------------
+# Python general
+# ------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Byte-compiled / optimized / DLL files
+*.pyd
+*.pyo
+
+# Virtual environments
+venv/
+.env/
+.env.bak/
+ENV/
+.Python
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Unit test / coverage
+.coverage
+htmlcov/
+.cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs
+*.log
+
+# ------------------------------------
+# OS / Editor specific
+# ------------------------------------
+
+# macOS
+.DS_Store
+
+# VSCode settings (optional: keep if needed)
+.vscode/
+# Keep recommended settings (optional)
+!.vscode/settings.json
+
+# ------------------------------------
+# Project-specific exclusions
+# ------------------------------------
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# UDP クライアント・サーバーはPushしない
+Client/udp_client.py
+Server/udp_server.py
+
+# Project specific: don't commit runtime dumps
+*.pid
+
+# If you accidentally made venv as a folder inside repo
+# (your tree says you have ./venv/)
+# → ignore the entire thing
+venv/
+
+# If you generate compiled protocol files or binary dumps
+*.bin
+*.dat
