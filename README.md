@@ -20,44 +20,44 @@
 4. `python3 main.py client`: クライアントプログラムの起動(④)
 
 5. 必須項目の入力(②) ※実際のテストでは、()内の文字列を入力
-- Room name: 任意の名前(room1)
-- Username: 任意の名前(user1)
-- create/join: 数字の選択(1: create) ※ルーム作成
+    - Room name: 任意の名前(room1)
+    - Username: 任意の名前(user1)
+    - create/join: 数字の選択(1: create) ※ルーム作成
 
 6. 必須項目の入力(③)
-- Room name: 任意の名前(room1)
-- Username: 任意の名前(user2)
-- create/join: 数字の選択(2: join) ※ルーム参加
+    - Room name: 任意の名前(room1)
+    - Username: 任意の名前(user2)
+    - create/join: 数字の選択(2: join) ※ルーム参加
 
 7. 必須項目の入力(④)
-- Room name: 任意の名前(room1)
-- Username: 任意の名前(user3)
-- create/join: 数字の選択(2: join) ※ルーム参加
+    - Room name: 任意の名前(room1)
+    - Username: 任意の名前(user3)
+    - create/join: 数字の選択(2: join) ※ルーム参加
 
 8. メッセージ入力1(②)
-- メッセージを入力し送信(Hello everyone!)
+    - メッセージを入力し送信(Hello everyone!)
 
 9. メッセージ確認1(③・④)
-- 8.で送信されたメッセージをCLIで受信しているか確認
+    - 8.で送信されたメッセージをCLIで受信しているか確認
 
 10. メッセージ入力2(③)
-- メッセージを入力し送信(Hello!)
+    - メッセージを入力し送信(Hello!)
 
 11. メッセージ確認2(②・④)
-- 10.で送信されたメッセージをCLIで受信しているか確認
+    - 10.で送信されたメッセージをCLIで受信しているか確認
 
 12. メッセージ入力3(④)
-- メッセージを入力し送信(Hey guys!)
+    - メッセージを入力し送信(Hey guys!)
 
 13. メッセージ確認3(②・③)
-- 10.で送信されたメッセージをCLIで受信しているか確認
+    - 10.で送信されたメッセージをCLIで受信しているか確認
 
 14. `exit` を入力: ゲストによるルーム退出(③)
 
 15. `exit`, `yes` を入力: ホストによるルーム退出(②)
 
 16. ルーム終了確認(④)
-- Enter 押下でルーム退出
+    - Enter 押下でルーム退出
 
 17. `ctrl + c`: サーバープログラム終了(①)
 
