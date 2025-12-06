@@ -34,13 +34,9 @@ class TCPServer:
     
     # サーバ起動   
     def start(self):
-        print(">>> TCPServer.start() CALLED")
-
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.bind((self.host, self.port))
         self.sock.listen(20)
-
-        print(f"[TCP SERVER] Listening on {(self.host, self.port)}")
 
         while True:
             conn, addr = self.sock.accept()
@@ -115,7 +111,7 @@ class TCPServer:
             conn.sendall(complete_packet)
 
         except Exception as e:
-            print("[TCP SERVER] Error:", e)
+            print(f"[TCP SERVER] Error: {e}")
 
         finally:
             conn.close()
