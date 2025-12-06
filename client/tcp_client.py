@@ -101,11 +101,11 @@ if __name__ == "__main__":
     elif mode == "2":
         op = TCRPProtocol.OP_JOIN
     else:
-        raise RuntimeError("Invalid input")
+        raise RuntimeError("Invalid input. Choose 1 or 2.")
 
 
     try:
         token = client.request(room, user, op)
-        print(f"[CLIENT] Token received: {token}")
+        print(f"[TCP CLIENT] Token received: {token}")
     except Exception as e:
-        print("[CLIENT ERROR]", e)
+        print(f"[TCP CLIENT] ERROR: {e}")
