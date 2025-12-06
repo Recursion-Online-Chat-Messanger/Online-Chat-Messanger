@@ -71,8 +71,6 @@ class UDPServer:
 
         except Exception as e:
             print(f"[UDP SERVER] Error handling packet from {addr}: {e}")
-            import traceback
-            traceback.print_exc()
 
     # ---- 各クライアントへ配信 ----
     def broadcast(self, room, sender_addr, username, message):
