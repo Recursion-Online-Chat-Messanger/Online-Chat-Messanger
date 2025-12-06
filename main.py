@@ -48,7 +48,7 @@ def run_client(args):
 
     room = input("Room name: ").strip()
     user = input("Username: ").strip()
-    mode = input("create/join (1/2): ").strip()
+    mode = input("Choose number -- 1(create) or 2(join): ").strip()
 
     if mode not in ("1", "2"):
         print("Invalid mode")
@@ -62,17 +62,17 @@ def run_client(args):
     # TCP request → token を受け取る
     try:
         token = tcp.request(room, user, op)
-        print("[CLIENT] TCP token =", token)
+        print("[TCP SERVER] TCP token =", token)
         
         if is_host:
-            print("[CLIENT] You are the HOST of this room")
-            print("[CLIENT] If you exit, the room will be closed for all participants")
+            print("[TCP SERVER] You are the HOST of this room")
+            print("[TCP SERVER] If you exit, the room will be closed for all participants")
         else:
-            print("[CLIENT] You joined as a GUEST")
+            print("[TCP SERVER] You joined as a GUEST")
         
-        print("[CLIENT] Starting UDP messaging...")
+        print("[UDP SERVER] Starting UDP messaging...")
     except Exception as e:
-        print(f"[CLIENT] Failed to connect: {e}")
+        print(f"[TCP SERVER ERROR] {e}")
         return
 
     udp = UDPClient(
@@ -111,7 +111,7 @@ def run_client(args):
                             continue
                     
                     udp.send_leave()
-                    print("[CLIENT] Leaving room...")
+                    print("[UDP SERVER] Leaving room...")
                     break
 
                 if msg:  # 空メッセージは送信しない
@@ -120,10 +120,10 @@ def run_client(args):
                 # Ctrl+D などで入力が終了した場合
                 break
     except KeyboardInterrupt:
-        print("\n[CLIENT] Interrupted by user")
+        print("\n[UDP SERVER] Interrupted by user")
     
     udp.stop()
-    print("[CLIENT] Disconnected.")
+    print("[UDP SERVER] Disconnected.")
 
 
 # CLI エントリーポイント

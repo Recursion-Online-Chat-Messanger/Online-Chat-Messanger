@@ -90,10 +90,10 @@ class UDPClient:
                 decoded_msg = msg.decode()
                 
                 # ルーム終了通知をチェック
-                if decoded_msg == "[SERVER] Room closed by host":
+                if decoded_msg == "[UDP SERVER] Room closed by host":
                     print(f"\n{decoded_msg}")
-                    print("[CLIENT] The host has left. Room is now closed.")
-                    print("[CLIENT] Press Enter to exit...")
+                    print("[UDP SERVER] The host has left. Room is now closed.")
+                    print("[UDP CLIENT] Press Enter to exit...")
                     self.running = False
                     break
                 
@@ -101,7 +101,7 @@ class UDPClient:
                 print("> ", end="", flush=True)  # プロンプトを再表示
             except Exception as e:
                 if self.running:
-                    print(f"\n[UDP CLIENT] Receive error: {e}")
+                    print(f"\n[UDP SERVER] ERROR: {e}")
                 break
     
     def stop(self):

@@ -24,7 +24,7 @@ class UDPServer:
     def handle_packet(self, data, addr):
         try:
             if len(data) < 4:
-                print(f"[UDP] Packet too short from {addr}")
+                print(f"[UDP SERVER] Packet too short from {addr}")
                 return
 
             op = data[0]
@@ -44,61 +44,61 @@ class UDPServer:
 
             message = data[offset:].decode() if offset < len(data) else ""
 
-            print(f"[UDP] Received from {addr}: op={op}, room='{room}', user='{username}', msg='{message[:50]}'")
+            print(f"[UDP SERVER] Received from {addr}: op={op}, room='{room}', user='{username}', msg='{message[:50]}'")
 
             # token 認証（addrを含む3引数）
             if not self.manager.is_valid_token(room, token, addr):
-                print(f"[UDP] Invalid token from {addr}, room='{room}', token='{token}'")
+                print(f"[UDP SERVER] Invalid token from {addr}, room='{room}', token='{token}'")
                 return
 
             # クライアントアドレスを登録
             self.room_clients.setdefault(room, {})
             self.room_clients[room][token] = addr
-            print(f"[UDP] Valid token. Registered: room='{room}', addr={addr}, clients_in_room={len(self.room_clients[room])}")
+            print(f"[UDP SERVER] Valid token. Registered: room='{room}', addr={addr}, clients_in_room={len(self.room_clients[room])}")
 
             # ---- exit（leave） ----
             if op == 1:
-                print(f"[UDP] Processing leave for '{username}' in '{room}'")
+                print(f"[UDP SERVER] Processing leave for '{username}' in '{room}'")
                 self.process_leave(room, token, username)
                 return
 
             # ---- 通常メッセージ ----
             if message:  # メッセージが空でない場合のみブロードキャスト
-                print(f"[UDP] Broadcasting message in room '{room}' from '{username}'")
+                print(f"[UDP SERVER] Broadcasting message in room '{room}' from '{username}'")
                 self.broadcast(room, sender_addr=addr, username=username, message=message)
             else:
-                print(f"[UDP] Join notification received from '{username}' in '{room}' (no broadcast)")
+                print(f"[UDP SERVER] Join notification received from '{username}' in '{room}' (no broadcast)")
 
         except Exception as e:
-            print(f"[UDP] Error handling packet from {addr}: {e}")
+            print(f"[UDP SERVER] Error handling packet from {addr}: {e}")
             import traceback
             traceback.print_exc()
 
     # ---- 各クライアントへ配信 ----
     def broadcast(self, room, sender_addr, username, message):
         if room not in self.room_clients:
-            print(f"[UDP] Room '{room}' not found in room_clients")
+            print(f"[UDP SERVER] Room '{room}' not found in room_clients")
             return
 
-        full_msg = f"{username}: {message}".encode()
+        full_msg = f"[{username}] {message}".encode()
         client_count = len(self.room_clients[room])
         
-        print(f"[UDP] Broadcasting to {client_count} clients in room '{room}'")
-        print(f"[UDP] Sender addr: {sender_addr}")
+        print(f"[UDP SERVER] Broadcasting to {client_count} clients in room '{room}'")
+        print(f"[UDP SERVER] Sender addr: {sender_addr}")
 
         sent_count = 0
         for tkn, caddr in self.room_clients[room].items():
-            print(f"[UDP] Checking client: token={tkn[:8]}..., addr={caddr}")
+            print(f"[UDP SERVER] Checking client: token={tkn[:8]}..., addr={caddr}")
             try:
                 # 送信者にもメッセージを送信
                 # 送信者以外に送信したい場合は if caddr != sender_addr: を使用
                 self.sock.sendto(full_msg, caddr)
                 sent_count += 1
-                print(f"[UDP] Sent to {caddr}")
+                print(f"[UDP SERVER] Sent to {caddr}")
             except Exception as e:
-                print(f"[UDP] Failed to send to {caddr}: {e}")
+                print(f"[UDP SERVER] Failed to send to {caddr}: {e}")
         
-        print(f"[UDP] Successfully sent to {sent_count}/{client_count} clients")
+        print(f"[UDP SERVER] Successfully sent to {sent_count}/{client_count} clients")
 
     # ---- 退出処理 ----
     def process_leave(self, room, token, username):
@@ -106,37 +106,37 @@ class UDPServer:
 
         # ホスト退出 → 部屋削除
         if result == "host_closed":
-            print(f"[UDP] Host '{username}' left. Closing room: '{room}'")
+            print(f"[UDP SERVER] Host '{username}' left. Closing room: '{room}'")
 
             if room in self.room_clients:
-                close_msg = b"[SERVER] Room closed by host"
+                close_msg = b"[UDP SERVER] Room closed by host"
                 for tkn, addr in self.room_clients[room].items():
                     if tkn != token:  # ホスト自身には送らない
                         try:
                             self.sock.sendto(close_msg, addr)
-                            print(f"[UDP] Sent room closure notification to {addr}")
+                            print(f"[UDP SERVER] Sent room closure notification to {addr}")
                         except Exception as e:
-                            print(f"[UDP] Failed to notify {addr}: {e}")
+                            print(f"[UDP SERVER] Failed to notify {addr}: {e}")
 
             self.room_clients.pop(room, None)
-            print(f"[UDP] Room '{room}' removed from room_clients")
+            print(f"[UDP SERVER] Room '{room}' removed from room_clients")
             return
 
         # 参加者退出
         if result:
-            print(f"[UDP] User '{username}' left room '{room}'")
+            print(f"[UDP SERVER] User '{username}' left room '{room}'")
             
             # room_clients から削除
             if room in self.room_clients:
                 self.room_clients[room].pop(token, None)
-                print(f"[UDP] Removed '{username}' from room_clients. Remaining clients: {len(self.room_clients[room])}")
+                print(f"[UDP SERVER] Removed '{username}' from room_clients. Remaining clients: {len(self.room_clients[room])}")
             
             # 退出通知を他のユーザーに送信
             if room in self.room_clients:
-                leave_msg = f"[SERVER] {username} left the room".encode()
+                leave_msg = f"[UDP SERVER] {username} left the room".encode()
                 for tkn, addr in self.room_clients[room].items():
                     try:
                         self.sock.sendto(leave_msg, addr)
-                        print(f"[UDP] Sent leave notification to {addr}")
+                        print(f"[UDP SERVER] Sent leave notification to {addr}")
                     except Exception as e:
-                        print(f"[UDP] Failed to notify {addr}: {e}")
+                        print(f"[UDP SERVER] Failed to notify {addr}: {e}")

@@ -111,7 +111,7 @@ class TCPServer:
             conn.sendall(complete_packet)
 
         except Exception as e:
-            print("[TCP SERVER] Error:", e)
+            print(f"[TCP SERVER] Error: {e}")
 
         finally:
             conn.close()
