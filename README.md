@@ -155,6 +155,6 @@
 ### mab  
 Github: https://github.com/Mavo39  
 ### ぬんち  
-Github: (https://github.com/4batongue)  
+Github: https://github.com/4batongue  
 ### みさ  
 Github: https://github.com/amissamlisa
